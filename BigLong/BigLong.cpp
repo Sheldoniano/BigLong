@@ -4,6 +4,7 @@
 #include <conio.h>
 #include <iomanip>  // std::setfill, std::setw
 #include <chrono>
+#include "dynamicArray.cpp"
 
 using namespace std;
 
@@ -88,10 +89,15 @@ public:
 	~Biglong() {
 		cout << "~Biglong()" << "||"<< vector[0] << endl;
 		cout << "name=" << name << endl;
-		name="";
-		vector = NULL;
-		quantum = NULL;
-		length = NULL;
+		cout << "quantum=" << quantum << endl;
+		cout << "length=" << length << endl;
+		cout << "resultado x=" << *this << endl;
+		this->name="";
+		delete[] this->vector;
+		this->quantum = 0;
+		this->length = 0;
+		this->vector = nullptr;
+		cout << "fin de la funcion ~Biglong()" << endl;
 		//delete[] this->vector; vector = NULL; // ocurren problemas con el destructor de la función
 	} // destructor
 	/* constructors */
@@ -145,7 +151,7 @@ inline Biglong::Biglong() : pos(true) // el constructor 1, inicializo los parame
 	cout << "Biglong::Biglong()" << endl;/*1*/
 	//ELEM_TYPE* vector = new ELEM_TYPE[1];
 	//*vector = 0;
-	vector = NULL;
+	vector = nullptr;
 	length = 0;
 	quantum = 0;
 	name = "";
@@ -399,15 +405,15 @@ inline Biglong::Biglong(const Biglong& l) : pos(l.pos),length(l.length)//, vecto
 {
 	cout << "Biglong::Biglong(const Biglong& l) :" << "l.quantum= " << l.quantum << endl;
 	cout << "l.name=" << l.name << endl;
-
+	cout << "name=" << name << endl;
 	//vector= new ELEM_TYPE[quantum];
-	quantum = 1;
-	name = l.name;
 	//delete[] this->vector;
-	quantum=l.quantum;
-	vector = l.vector;
-
-
+	this->name = l.name;
+	this->pos = l.pos;
+	this->quantum = l.quantum;
+	this->length = l.length;
+	this->vector = new ELEM_TYPE[this->quantum];
+	memcpy(this->vector, l.vector, sizeof(ELEM_TYPE) * l.quantum);
 
 	cout << vector[quantum - 1] << endl;
 
@@ -483,6 +489,7 @@ inline void Biglong::fromstring(const std::string& s) {
 inline const Biglong& Biglong::operator=(int l)
 {
 	cout << "const Biglong& Biglong::operator=(int l)" << endl;/*1*/
+	cout << "x.name=" << this->name << endl;
 	//PROFINY_SCOPE
 	bool restauno = false;
 	if (l == INT_MIN)
@@ -573,6 +580,7 @@ inline const Biglong& Biglong::operator=(long l)
 inline const Biglong& Biglong::operator=(long long l)
 {
 	cout << "const Biglong& Biglong::operator=(long long l)" << endl;/*1*/
+	cout <<"x.name="<< this->name << endl;
 	int base;
 	//PROFINY_SCOPE
 	bool restauno = false;
@@ -722,10 +730,12 @@ inline const Biglong& Biglong::operator=(const Biglong& l)
 	cout << "name=" << name << "|l.name=" << l.name << endl;
 
 	delete[] this->vector;
-	pos = l.pos;
-	vector = l.vector;
-	quantum = l.quantum;
-	length = l.length;
+	this->name = l.name;
+	this->pos = l.pos;
+	this->quantum = l.quantum;
+	this->length = l.length;
+	this->vector = new ELEM_TYPE[this->quantum];
+	memcpy(this->vector, l.vector, sizeof(ELEM_TYPE) * l.quantum);
 	return *this;
 }
 
@@ -737,11 +747,12 @@ inline Biglong Biglong::operator*(const Biglong& rhs) const
 	cout << "vector: " << vector[quantum - 1] << " rhs.vector: " << rhs.vector[rhs.quantum - 1] << endl;/*1*/
 	//PROFINY_SCOPE
 	Biglong result;
-	result.name = "Biglong result";
+	result.name = name+rhs.name;//"Biglong result";
 	result.length = length + rhs.length;
-	result.quantum = result.length / DIGIT_COUNT + 1;
+	result.quantum = result.length / DIGIT_COUNT + 1;//+1 // el valor ideal
 	result.vector = new ELEM_TYPE[result.quantum];// se define el nuevo vector  (verificar)
-	result.vector[result.quantum - 1] = 0;
+	memset(result.vector, 0, result.quantum * sizeof(Type));// setea todos los valores del vector con 0
+	//result.vector[result.quantum - 1] = 0;
 	cout << " length=" << length << " quantum=" << quantum << endl;
 	cout << " rhs.length=" << rhs.length << " rhs.quantum=" << rhs.quantum << endl;
 	cout << "result.vector = new ELEM_TYPE[result.quantum];" <<" result.length="<< result.length << " result.quantum="<< result.quantum << endl;
@@ -749,12 +760,13 @@ inline Biglong Biglong::operator*(const Biglong& rhs) const
 	PRODUCT_TYPE carry = 0;
 	size_t digit = 0;
 	//digit < result.quantum
+	cout << "se inicio los digitos" << endl;
 	for (;; ++digit)
 	{
 		lldiv_t dt = my_lldiv(carry, BASE);
 		carry = dt.quot;
-		result.vector[digit] = (ELEM_TYPE)dt.rem;// se añade un valor fuera del rango permitido y eso ocaciona un error
-
+		if(digit< result.quantum)result.vector[digit] = (ELEM_TYPE)dt.rem;// se añade un valor fuera del rango permitido y eso ocaciona un error
+		cout << digit << endl;
 		bool found = false;
 		for (size_t i = digit < rhs.quantum ? 0 : digit - rhs.quantum + 1; i < quantum && i <= digit; ++i)
 		{
@@ -775,6 +787,7 @@ inline Biglong Biglong::operator*(const Biglong& rhs) const
 			break;
 		}
 	}
+	cout << "fin los digitos" << endl;
 	cout << "rhs.vector[0]=" << rhs.vector[0] << endl;
 	cout << "vector[0]=" << vector[0] << endl;
 	//cout << "vector[1]=" << vector[1] << endl;
@@ -788,6 +801,7 @@ inline Biglong Biglong::operator*(const Biglong& rhs) const
 	{
 		lldiv_t dt = my_lldiv(carry, BASE);
 		result.vector[digit] = (ELEM_TYPE)dt.rem;
+		cout << "carry-digits=" << digit << endl;
 		carry = dt.quot;
 	}
 	cout << "digit=" << digit <<" result.vector[0]="<< result.vector[0] << endl;
@@ -1137,7 +1151,7 @@ inline void Biglong::removeLeadingZeros()
 			copy(vector, vector + quantum, aux);
 			delete[] vector;
 			vector = aux;
-			aux = NULL;
+			aux = nullptr;
 			length = this->numberOfDigits();
 			cout << "vector[quantum-1] = " << vector[quantum-1] << endl;
 			cout << "void Biglong::removeLeadingZeros()" << " length ="<< length << " quantum =" << quantum << endl;
@@ -1147,7 +1161,6 @@ inline void Biglong::removeLeadingZeros()
 		//val.erase(val.begin() + i);
 	}
 	// si se llegá hasta acá implica que el vector es nulo
-	cout << "quantum=" << quantum << endl;
 	quantum = quantum <= 0 ? 1 : quantum;
 	cout << "quantum=" << quantum << endl;
 	cout << "cero!!!!!!!!!!!!!!!!" << endl;
@@ -1157,7 +1170,7 @@ inline void Biglong::removeLeadingZeros()
 	cout << "vector="<< vector[0] << endl;
 	delete[] vector;//si ocurre un error del tipo HEAP CORRUPTION DETECTED: es porque se está escribiendo fuera de los limites del vector,entonces al llamar a la función delete[] se presenta dicho error
 	cout << "cero!!!!!!!!!!!!!!!!" << endl;
-	vector = NULL;
+	vector = nullptr;
 	cout << "cero!!!!!!!!!!!!!!!!" << endl;
 	length = 1;
 	cout << "cero!!!!!!!!!!!!!!!!" << endl;
@@ -1220,12 +1233,49 @@ if (bits == NULL)
 	exit(1);
 }
 */
+
+//
+//int binaryLength(unsigned long long n)
+//{
+//	int i = 0; // the minimum number of bits required.
+//	if (n >= 0x7FFFFFFF) { n >>= 32; i += 32; }
+//	if (n >= 0x7FFF) { n >>= 16; i += 16; }
+//	if (n >= 0x7F) { n >>= 8; i += 8; }
+//	if (n >= 0x7) { n >>= 4; i += 4; }
+//	if (n >= 0x3) { n >>= 2; i += 2; }
+//	if (n >= 0x1) { n >>= 1; i += 1; }
+//	return i+n;
+//}
+
 int main() {
 
+
+
+
+	//int a1 = binaryLength(18446744073709551615);
+	//cout << "longitud de 18446744073709551615: " << a1 << endl;
+
+	//ELEM_TYPE* vector = new ELEM_TYPE[2];
+	//vector[0] = 1;
+	//vector[1] = 2;
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	cout << vector[i] << endl;
+	//}
+	//delete[] vector;
+	//vector = nullptr;
+	//char str[] = "almost every programmer should know memset!";
+	//memset(str+7, '-', 6+7);
+	//puts(str);
+	//return 0;
+
+
+
+	//_getch();
 	cout << "**************** PRUEBAS ***************" << endl;
 
 	Biglong a,b;
-	a.name = "letra a";
+	a.name = "letra 0";
 	b.name = "letra b";
 	//b = 3123234;
 
@@ -1272,9 +1322,19 @@ int main() {
 	//a = (a * 0) ; // solo falta reparar la incidencia con el 0
 	//a =a*2;
 	//--a;
-	for (int i = 0; i < 4; i++){
+
+	//////for (int i = 0; i < 4; i++){
+	//////	a = a * b;
+	//////	a.name = "letra "+(char)(49+i);
+	//////	cout << "\n\nsiguiente iteracion a=" << a << endl;
+	//////}
+
+	a* b * 0;
+
+	for (int i = 0; i < 100; i++) {
 		a = a * b;
-		cout << "\n\na=" << a << endl;
+		a.name = "letra " + (char)(49 + i);
+		cout << "\n\nsiguiente iteracion a=" << a << endl;
 	}
 
 	cout << a << endl;
