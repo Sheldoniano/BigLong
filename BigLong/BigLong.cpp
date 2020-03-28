@@ -1,4 +1,4 @@
-// BigLong.cpp : Este archivo contiene la función "main". La ejecución del programa comienza y termina ahí.
+// BigLong.cpp :
 //
 #include <iostream>
 #include <conio.h>
@@ -68,7 +68,8 @@ class Biglong {
 
 private:
 	bool pos; // true if number is positive
-	ELEM_TYPE *vector;
+	//ELEM_TYPE *vector;
+	list vector;
 	//int precision;
 	//int header;
 	void fromstring(const std::string& s);
@@ -83,10 +84,7 @@ public:
 
 	~Biglong() {
 		// destructor
-		delete[] this->vector;
-		this->quantum = 0;
-		this->length = 0;
-		this->vector = nullptr;
+		vector.del();
 	} // destructor
 	/* constructors */
 	Biglong();
@@ -142,9 +140,7 @@ public:
 inline Biglong::Biglong() : pos(true) // el constructor 1, inicializo los parametros pos=true;length=1 y vector =0
 {
 	//ELEM_TYPE* vector = new ELEM_TYPE[1];
-	vector = nullptr;
-	length = 0;
-	quantum = 0;
+	vector.resize(1);
 }
 
 //inline Biglong::Biglong(int _presicion) : pos(true) // el constructor 2, inicializo los parametros pos=true;length=1 y vector =0
@@ -1084,41 +1080,7 @@ inline void Biglong::truncateToBase()
 	}
 }
 
-inline void Biglong::removeLeadingZeros()
-{
-	//PROFINY_SCOPE
-	if (vector[quantum - 1] != 0)
-	{
-		length = this->numberOfDigits();
-		return;
-	}
-	--quantum;
-	for (int i = (int)(quantum) - 1; i >= 0; --i) // remove leading 0's
-	{
-		if (vector[i] != 0)
-		{
-			quantum = i+1;
-			ELEM_TYPE* aux = new ELEM_TYPE[quantum];
-			copy(vector, vector + quantum, aux);
-			delete[] vector;
-			vector = aux;
-			aux = nullptr;
-			length = this->numberOfDigits();
-			return;
-		}
-		//--quantum;
-	}
-	// si se llegá hasta acá implica que el vector es nulo
-	quantum = quantum <= 0 ? 1 : quantum;
-	ELEM_TYPE* aux = new ELEM_TYPE[quantum];
-	copy(vector, vector + quantum, aux);
-	delete[] vector;//si ocurre un error del tipo HEAP CORRUPTION DETECTED: es porque se está escribiendo fuera de los limites del vector,entonces al llamar a la función delete[] se presenta dicho error
-	vector = nullptr;
-	length = 1;
-	quantum = 1;
-	vector = new ELEM_TYPE[quantum];
-	vector[0] = 0;
-}
+
 
 
 /**************************************************************/

@@ -23,6 +23,12 @@ Biglong factorial(Biglong n)
 
 int main() {
 
+	int aux[101] = { 0 };
+
+	cout << aux[0];
+	//list a;
+	//Biglong a1;
+
 	//for( int x : squares )
 	//for (auto x : squares)
 
@@ -31,7 +37,7 @@ int main() {
 
 	//int a[] = { 1,2,3,4,5 };
 	//int b[] = { 0,0,0,0,0,0,0,0,0,0 };
-	cout << factorial("50000");
+	//cout << factorial("50000");
 
 	cout << "\n|||Fin||||" << endl;
 	_getch();
