@@ -1,100 +1,160 @@
 #include <iostream>
 #include <stdio.h>
-//#include <string.h>
 
 //template <class Type>// forma general
+
+//using namespace std;
 typedef int Type;// forma particular
 
-using namespace std;
-
 class list {
+
+private:
+    
+    static const Type DIGIT_COUNTS = 9;
+    size_t realSize() const;
+    size_t numberOfDigits() const;
+    void del();// se elimina el vector
 public:
-    Type* pointer = nullptr;// array que 
-    size_t size;
-    Type fill = 0;
-    list(Type initVal = 0, size_t size = 1, const Type fill = 0) {
-        this->size = size;
-        pointer = new Type[size];
-        memset(pointer, fill, size * sizeof(Type));
-        pointer[0] = initVal;
-        this->fill = fill;
-    }
+    Type* vector = nullptr;// array que 
+    size_t size;//cantidad de bloques
+    Type length;//cantidad de digitos en cada bloque
+
+    // Constructores
+    list();
+    list(const size_t size);
+    list(const size_t size, Type load);
+    list(const list& rvalue);
+    // destructor
     ~list() {
-        delete[] pointer;
         size = 0;
-        pointer = nullptr;
+        length = 0;
+        delete[] vector;
+        vector = nullptr;
     }
-    void del() {
-        delete[] pointer;
-        size = 0;
-        pointer = nullptr;
-    }
-    list(const list& rvalue) {
-        delete[] pointer;
-        this->size = rvalue.size;
-        pointer = new Type[rvalue.size];
-        memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
-    }
-    const list& operator= (const list&& rvalue) {
-        delete[] pointer;
-        this->size = rvalue.size;
-        pointer = new Type[rvalue.size];
-        memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
-        return *this;
-    }
-    void operator=(const list& rvalue) {
-        delete[] pointer;
-        this->size = rvalue.size;
-        pointer = new Type[rvalue.size];
-        memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
-    }
-    inline list operator+(const list& rhs) {
-        list aux(size = this->size + rhs.size, fill = 0);
-        memcpy(aux.pointer, this->pointer, sizeof(int) * this->size);
-        memcpy(aux.pointer, rhs.pointer, sizeof(int) * rhs.size);
-        return aux;
-    }
-    void operator<<(int num)
-    {
-        list aux(size = this->size + num, fill = 0);
-        memcpy(aux.pointer, this->pointer, sizeof(int) * this->size);
-        *this=aux;
-    }
-
-    void operator>>(int num)
-    {
-        list aux(size = this->size + num, fill = 0);
-        memcpy(aux.pointer + num, this->pointer, sizeof(int) * this->size);
-        *this = aux;
-    }
-
-    size_t realSize() const {
-        size_t i = size - 1;
-        while (pointer[i] == 0 && i > 0)i--;
-        return i;
-    }
-
-    Type& operator[]  (const size_t& index) {
-        if (index >= size) {
-            expand(index + 1);
-        }
-        return pointer[index];
-    }
-    const Type operator[]  (const size_t& index) const {
-        if (index >= size) {
-            return 0;
-        }
-        return pointer[index];
-    }
+    // Operadores
+    const list& operator=(const list&& rvalue);
+    void operator=(const list& rvalue);
+    void operator<<(int num);
+    void operator>>(int num);
+    list operator+(const list& rhs);
+    Type& operator[]  (const size_t& index);
+    const Type operator[]  (const size_t& index) const;
 
     Type* expand(const size_t& size) {
         Type* new_ptr = new Type[size];
-        memset(new_ptr + this->size, fill, (size - this->size) * sizeof(Type));
+        memset(new_ptr + this->size, 0, (size - this->size) * sizeof(Type));
         while (this->size--) {
-            new_ptr[this->size] = pointer[this->size];
+            new_ptr[this->size] = vector[this->size];
         }
-        delete[] pointer;
+        delete[] vector;
         this->size = size;
-        return pointer = new_ptr;
+        return vector = new_ptr;
     }
 };
+
+//Constructor
+
+inline list::list() {
+    vector = nullptr;
+    size = 0;
+    length = 0;
+}
+
+inline list::list(size_t size) {
+    this->size = size;
+    this->length = 0;
+    vector = new Type[size];
+}
+
+inline list::list(size_t size, Type load) {
+    this->size = size;
+    vector = new Type[size];
+    memset(vector, load, size * sizeof(Type));
+    this->length = load == 0 ? 0 : this->numberOfDigits();
+}
+
+inline list::list(const list& rvalue) {
+    delete[] vector;
+    this->size = rvalue.size;
+    this->length = rvalue.length;
+    vector = new Type[rvalue.size];
+    memcpy(vector, rvalue.vector, sizeof(Type) * rvalue.size);
+}
+
+// Operadores
+
+inline const list& list::operator= (const list&& rvalue) {
+    delete[] vector;
+    this->size = rvalue.size;
+    vector = new Type[rvalue.size];
+    memcpy(vector, rvalue.vector, sizeof(Type) * rvalue.size);
+    return *this;
+}
+
+inline void list::operator=(const list& rvalue) {
+    delete[] vector;
+    this->size = rvalue.size;
+    vector = new Type[rvalue.size];
+    memcpy(vector, rvalue.vector, sizeof(Type) * rvalue.size);
+}
+
+inline list list::operator+(const list& rhs) {
+    list aux(this->size);
+    memcpy(aux.vector, this->vector, sizeof(int) * this->size);
+    memcpy(aux.vector+ this->size, rhs.vector, sizeof(int) * rhs.size);
+    return aux;
+}
+
+inline void list::operator<<(int num)
+{
+    list aux(this->size + num, 0);
+    memcpy(aux.vector, this->vector, sizeof(int) * this->size);
+    *this = aux;
+}
+
+inline void list::operator>>(int num)
+{
+    list aux(this->size + num, 0);
+    memcpy(aux.vector + num, this->vector, sizeof(int) * this->size);
+    *this = aux;
+}
+
+inline Type& list::operator[]  (const size_t& index) {
+    if (index >= size) {
+        expand(index + 1);
+    }
+    return vector[index];
+}
+inline const Type list::operator[]  (const size_t& index) const {
+    if (index >= size) {
+        return 0;
+    }
+    return vector[index];
+}
+
+// Funciones privadas
+
+inline void list::del() {
+    delete[] vector;
+    size = 0;
+    length = 0;
+    vector = nullptr;
+}
+
+inline size_t list::realSize() const {
+    size_t i = size - 1;
+    while (vector[i] == 0 && i > 0)i--;
+    return i;
+}
+
+inline size_t list::numberOfDigits() const
+{
+    return (size - 1) * DIGIT_COUNTS +
+        (vector[size - 1] > 99999 ? (vector[size - 1] > 9999999 ? (vector[size - 1] > 99999999 ? 9 : 8) : (vector[size - 1] > 999999 ? 7 : 6)) :
+        (vector[size - 1] > 999 ? (vector[size - 1] > 9999 ? 5 : 4) : (vector[size - 1] > 99 ? 3 : (vector[size - 1] > 9 ? 2 : 1))));// busqueda binaria
+}
+
+
+
+
+
