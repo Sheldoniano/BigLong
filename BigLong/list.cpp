@@ -24,6 +24,7 @@ public:
     list(const size_t size);
     list(const size_t size, Type load);
     list(const list& rvalue);
+    list(const size_t size, Type vec[]);
     // destructor
     ~list() {
         size = 0;
@@ -79,6 +80,13 @@ inline list::list(const list& rvalue) {
     this->length = rvalue.length;
     vector = new Type[rvalue.size];
     memcpy(vector, rvalue.vector, sizeof(Type) * rvalue.size);
+}
+
+inline list::list(const size_t _size, Type vec[]) {
+    this->size = _size;
+    vector = new Type[_size];
+    memcpy(vector, vec, sizeof(Type) * _size);
+    this->length = this->numberOfDigits();
 }
 
 // Operadores

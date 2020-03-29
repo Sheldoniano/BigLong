@@ -27,11 +27,17 @@ int main() {
 	//for (auto x : squares)
 
 	//list a;
+	int aux[] = { 1,2,3,4,5,6,7,8,9 };
+//	list a(9, { 1,2,3,4,5,6,7,8,9 });
+	list a(9, aux);
 
-
+	for (int i = 0; i < 10; ++i)
+	{
+		cout << a.vector[i] << endl;
+	}
 	//int a[] = { 1,2,3,4,5 };
 	//int b[] = { 0,0,0,0,0,0,0,0,0,0 };
-	cout << factorial("50000");
+	//cout << factorial("50000");
 
 	cout << "\n|||Fin||||" << endl;
 	_getch();
