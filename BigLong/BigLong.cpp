@@ -73,10 +73,6 @@ private:
 	//int precision;
 	//int header;
 	void fromstring(const std::string& s);
-	void correct(bool justCheckLeadingZeros = false, bool hasValidSign = false);
-	void truncateToBase();
-	bool equalizeSigns();
-	void removeLeadingZeros();
 
 public:
 	size_t length;// indica la cantidad de digitos que tiene el numero
@@ -171,17 +167,16 @@ inline Biglong::Biglong(int l) : pos(l >= 0)
 		++l;
 	}
 
-	if (!pos)
+	if (!this->vector.pos)
 	{
 		l = -l;
 	}
 	div_t dt = my_div(l, BASE);
 	if (dt.quot > 0){
-		vector = new ELEM_TYPE[2];
-		vector[0]= (ELEM_TYPE)dt.rem;
-		vector[1] = (ELEM_TYPE)dt.quot;
-		quantum = 2;
-		length = this->numberOfDigits();
+		vector.resize(2);
+		vector.pointer[0]= (ELEM_TYPE)dt.rem;
+		vector.pointer[1] = (ELEM_TYPE)dt.quot;
+		vector.length = vector.numberOfDigits();
 	}
 	else {
 		vector = new ELEM_TYPE[1];
@@ -969,119 +964,6 @@ inline bool Biglong::operator>=(const Biglong& rhs) const
 	}
 	return true;
 }
-
-/**************************************************** funciones de verificación *********************************************************************/
-
-inline void Biglong::correct(bool justCheckLeadingZeros, bool hasValidSign)
-{
-	//PROFINY_SCOPE
-	if (!justCheckLeadingZeros)
-	{
-		truncateToBase();
-
-		if (equalizeSigns())
-		{
-			pos = ((quantum == 1 && vector[0] == 0) || !hasValidSign) ? true : pos;
-		}
-		else
-		{
-			pos = hasValidSign ? !pos : false;
-			for (size_t i = 0; i < quantum; ++i )
-			{
-				vector[i] = abs(vector[i]);
-			}
-		}
-	}
-
-	removeLeadingZeros();
-}
-
-inline bool Biglong::equalizeSigns()
-{
-	//PROFINY_SCOPE
-	bool isPositive = true;
-	int i = (int)((quantum)) - 1;
-	for (; i >= 0; --i)
-	{
-		if (vector[i] != 0)
-		{
-			isPositive = vector[i--] > 0;
-			break;
-		}
-	}
-
-	if (isPositive)
-	{
-		for (; i >= 0; --i)
-		{
-			if (vector[i] < 0)
-			{
-				int k = 0, index = i + 1;
-				for (; (size_t)(index) < quantum && vector[index] == 0; ++k, ++index)
-				{ // number on the left is positive
-					vector[index] -= 1;
-					vector[i] += BASE;
-					for (; k > 0; --k)
-					{
-						vector[i + k] = UPPER_BOUND;
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-		for (; i >= 0; --i)
-		{
-			if (vector[i] > 0)
-			{
-				int k = 0, index = i + 1;
-				for (; (size_t)(index) < quantum && vector[index] == 0; ++k, ++index)
-				{
-					// number on the left is negative
-					vector[index] += 1;
-					vector[i] -= BASE;
-					for (; k > 0; --k)
-					{
-						vector[i + k] = -UPPER_BOUND;
-					}
-				}
-			}
-		}
-	}
-
-	return isPositive;
-}
-
-inline void Biglong::truncateToBase()
-{
-	//PROFINY_SCOPE
-	for (size_t i = 0; i < quantum; ++i) // truncate each
-	{
-		if (vector[i] >= BASE || vector[i] <= -BASE)
-		{
-			div_t dt = my_div(vector[i], BASE);
-			vector[i] = dt.rem;
-			if (i + 1 == quantum)//>=
-			{
-				ELEM_TYPE* aux = new ELEM_TYPE[quantum+1];
-				copy(vector, vector + quantum, aux);//Función presente en el estandar de c++ que copia valores desde la posición de memoria de un array a otro
-				delete[] vector;
-				aux[quantum] = dt.quot;
-				vector = aux;
-				aux = nullptr;
-				++length;
-			}
-			else
-			{
-				vector[i + 1] += dt.quot;
-			}
-		}
-	}
-}
-
-
-
 
 /**************************************************************/
 /******************** NON-MEMBER OPERATORS ********************/

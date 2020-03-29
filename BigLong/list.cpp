@@ -13,8 +13,17 @@ class list {
 private:
     static const Type DIGIT_COUNTS = 9;
     size_t realSize() const;
-    size_t numberOfDigits() const;
+    static const Type BASE = 1000000000;
+    static const Type UPPER_BOUND = 999999999;
+    inline static div_t my_div(int num, int denom)
+    {
+        div_t result;
+        result.quot = num / denom;
+        result.rem = num - denom * result.quot;
+        return result;
+    }
 public:
+    bool pos;// por default es True(+), se asume que cero es positivo
     Type* pointer = nullptr;// puntero se inicializa con cero
     size_t size;//cantidad de bloques
     Type length;//cantidad de digitos en cada bloque
@@ -27,6 +36,7 @@ public:
     list(const list& rvalue);
     // destructor
     ~list() {
+        pos = false;
         size = 0;
         length = 0;
         delete[] pointer;
@@ -47,10 +57,17 @@ public:
     void zero();// se elimina el pointer
     void resize(size_t _size);// se cambia el tamaño del vector
     void resize(size_t _size, int fill);// se cambia el tamaño del vector y se rellena con un valor definido
-    void removeLeadingZeros();
+
+    // funciones de verificación
+
+    void RemoveHeadZeros();// se quitan los ceros de las cabeceras para poder para contener al numero en 
     void correct(bool justCheckLeadingZeros = false, bool hasValidSign = false);
     void truncateToBase();
     bool equalizeSigns();
+
+    // Funciones de medición
+
+    size_t numberOfDigits() const;
     Type* expand(const size_t& size) {
         Type* new_ptr = new Type[size];
         memset(new_ptr + this->size, 0, (size - this->size) * sizeof(Type));
@@ -69,16 +86,19 @@ inline list::list() {
     pointer = nullptr;
     size = 0;
     length = 0;
+    pos = true;
 }
 
 inline list::list(size_t size) {
     this->size = size;
     this->length = 0;
+    pos = true;
     pointer = new Type[size];
 }
 
 inline list::list(size_t size, Type load) {
     this->size = size;
+    this->pos = load >= 0;
     pointer = new Type[size];
     memset(pointer, load, size * sizeof(Type));
     this->length = load == 0 ? 0 : this->numberOfDigits();
@@ -95,6 +115,7 @@ inline list::list(const list& rvalue) {
     delete[] pointer;
     this->size = rvalue.size;
     this->length = rvalue.length;
+    this->pos = rvalue.pos;
     pointer = new Type[rvalue.size];
     memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
 }
@@ -104,6 +125,7 @@ inline list::list(const list& rvalue) {
 inline const list& list::operator= (const list&& rvalue) {
     delete[] pointer;
     this->size = rvalue.size;
+    this->pos = rvalue.pos;
     pointer = new Type[rvalue.size];
     memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
     return *this;
@@ -112,6 +134,7 @@ inline const list& list::operator= (const list&& rvalue) {
 inline void list::operator=(const list& rvalue) {
     delete[] pointer;
     this->size = rvalue.size;
+    this->pos = rvalue.pos;
     pointer = new Type[rvalue.size];
     memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
 }
@@ -120,12 +143,12 @@ inline list list::operator+(const list& rhs) {
     list aux(this->size);
     memcpy(aux.pointer, this->pointer, sizeof(int) * this->size);
     memcpy(aux.pointer+ this->size, rhs.pointer, sizeof(int) * rhs.size);
+    aux.pos = aux.pos && this->pos;
     return aux;
 }
 
 inline void list::operator<<(int num)
 {
-
     if (num > 0) {
         list aux(this->size + num, 0);
         memcpy(aux.pointer, this->pointer, sizeof(int) * this->size);
@@ -188,7 +211,7 @@ inline void list::del() {
 
 inline void list::zero() {
     delete[] pointer;
-    size = 0;
+    size = 1;
     length = 1;
     pointer = new Type[1];
     pointer[0] = 0;
@@ -198,12 +221,14 @@ inline void list::resize(size_t _size) {
     delete[] pointer;
     size = _size;
     length = 1;
+    pos = true;
     pointer = new Type[_size];
 }
 
 inline void list::resize(size_t _size, int fill) {
     delete[] pointer;
     size = _size;
+    pos = fill >= 0;
     pointer = new Type[_size];
     memset(pointer, fill, _size * sizeof(Type));
     length = _size == 0 ? 1 : this->numberOfDigits();
@@ -224,23 +249,127 @@ inline size_t list::numberOfDigits() const
         (pointer[size - 1] > 999 ? (pointer[size - 1] > 9999 ? 5 : 4) : (pointer[size - 1] > 99 ? 3 : (pointer[size - 1] > 9 ? 2 : 1))));// busqueda binaria
 }
 
-inline void list::removeLeadingZeros()
+
+/**************************************************** funciones de verificación *********************************************************************/
+
+inline void list::RemoveHeadZeros()
 {
-    //PROFINY_SCOPE
-    *this >> (1 + this->realSize() - size);
-    length= this->numberOfDigits();
-    
-    // si se llegá hasta acá implica que el vector es nulo
-    quantum = quantum <= 0 ? 1 : quantum;
-    ELEM_TYPE* aux = new ELEM_TYPE[quantum];
-    copy(vector, vector + quantum, aux);
-    delete[] vector;//si ocurre un error del tipo HEAP CORRUPTION DETECTED: es porque se está escribiendo fuera de los limites del vector,entonces al llamar a la función delete[] se presenta dicho error
-    vector = nullptr;
-    length = 1;
-    quantum = 1;
-    vector = new ELEM_TYPE[quantum];
-    vector[0] = 0;
+    //remueve los ceros que se encuentran en las cifras más significativas
+    long long diferencia = 1 + this->realSize() - size;
+    if (diferencia != 0) {
+        *this >> (long long)(1 + this->realSize() - size);
+        length = this->numberOfDigits();
+    }
+    else
+    {
+        this->zero();
+    }
 }
 
+inline void list::truncateToBase()
+{
+    //PROFINY_SCOPE
+    for (size_t i = 0; i < this->size; ++i) // truncate each
+    {
+        if (this->pointer[i] >= BASE || this->pointer[i] <= -BASE)
+        {
+            div_t dt = my_div(this->pointer[i], BASE);
+            this->pointer[i] = dt.rem;
+            if (i + 1 == this->size)//>=
+            {
+                *this << 1;
+                this->pointer[this->size] = dt.quot;
+                ++this->size;
+                length=this->numberOfDigits();
+            }
+            else
+            {
+                this->pointer[i + 1] += dt.quot;
+            }
+        }
+    }
+}
+
+inline bool list::equalizeSigns()
+{
+    //Al momento de restar quedan algunos bloques negativos, esto vuelve a todos los bloques positivos
+    bool isPositive = true;
+    int i = (int)((this->size)) - 1;
+    for (; i >= 0; --i)
+    {
+        if (this->pointer[i] != 0)
+        {
+            isPositive = this->pointer[i--] > 0;
+            break;
+        }
+    }
+
+    if (isPositive)
+    {
+        for (; i >= 0; --i)
+        {
+            if (this->pointer[i] < 0)
+            {
+                int k = 0, index = i + 1;
+                for (; (size_t)(index) < this->size && this->pointer[index] == 0; ++k, ++index)
+                { // number on the left is positive
+                    this->pointer[index] -= 1;
+                    this->pointer[i] += BASE;
+                    for (; k > 0; --k)
+                    {
+                        this->pointer[i + k] = UPPER_BOUND;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        for (; i >= 0; --i)
+        {
+            if (this->pointer[i] > 0)
+            {
+                int k = 0, index = i + 1;
+                for (; (size_t)(index) < this->size && this->pointer[index] == 0; ++k, ++index)
+                {
+                    // el numero de la izquierda es negativo
+                    this->pointer[index] += 1;
+                    this->pointer[i] -= BASE;
+                    for (; k > 0; --k)
+                    {
+                        this->pointer[i + k] = -UPPER_BOUND;
+                    }
+                }
+            }
+        }
+    }
+
+    return isPositive;
+}
+
+inline void list::correct(bool justCheckLeadingZeros, bool hasValidSign)
+{
+    // Verificador si el estado de todos las celdas son correctos
+    // Por defecto, se remueven los ceros que están de la cabecera.
+    // Truncan los valores de cada celda a la Base se ha definido.
+    // convertir los valores negativos de las celdas a positivos sumandole su complemento y cambiando pos como False
+    if (!justCheckLeadingZeros)
+    {
+        this->truncateToBase();
+        if (this->equalizeSigns())
+        {
+            this->pos = ((this->size == 1 && this->pointer[0] == 0) || !hasValidSign) ? true : pos;
+        }
+        else
+        {
+            this->pos = hasValidSign ? !this->pos : false;
+            for (size_t i = 0; i < this->size; ++i)
+            {
+                this->pointer[i] = abs(this->pointer[i]);
+            }
+        }
+    }
+    this->RemoveHeadZeros();
+}
 
 
