@@ -23,15 +23,16 @@ private:
         return result;
     }
 public:
-    bool pos;// por default es True(+), se asume que cero es positivo
+    bool pos;// true if number is positive
     Type* pointer = nullptr;// puntero se inicializa con cero
-    size_t size;//cantidad de bloques
-    Type length;//cantidad de digitos en cada bloque
+    size_t size;// indica la cantidad de paquetes de elementos de 9 digitos
+    Type length;// indica la cantidad de digitos que tiene el numero
 
     // Constructores
     list();
     list(const size_t size);
     list(const size_t size, Type load);
+    list(size_t size, Type load, Type len);
     list(const size_t size, Type vector[]);
     list(const list& rvalue);
     // destructor
@@ -57,6 +58,7 @@ public:
     void zero();// se elimina el pointer
     void resize(size_t _size);// se cambia el tamaño del vector
     void resize(size_t _size, int fill);// se cambia el tamaño del vector y se rellena con un valor definido
+    void resize(size_t _size, int fill, Type len);
 
     // funciones de verificación
 
@@ -64,10 +66,9 @@ public:
     void correct(bool justCheckLeadingZeros = false, bool hasValidSign = false);
     void truncateToBase();
     bool equalizeSigns();
-
-    // Funciones de medición
-
+    /******************** digit operations **************************************/
     size_t numberOfDigits() const;
+    // Funciones de medición
     Type* expand(const size_t& size) {
         Type* new_ptr = new Type[size];
         memset(new_ptr + this->size, 0, (size - this->size) * sizeof(Type));
@@ -104,12 +105,20 @@ inline list::list(size_t size, Type load) {
     this->length = load == 0 ? 0 : this->numberOfDigits();
 }
 
-//inline list::list(const size_t size, Type vec[]) {
-//    this->size = size;
-//    //for (Type x : vec) {
-//
-//    //}
-//}
+inline list::list(size_t size, Type load, Type len) {
+    this->size = size;
+    this->pos = load >= 0;
+    pointer = new Type[size];
+    memset(pointer, load, size * sizeof(Type));
+    this->length = len;
+}
+
+inline list::list(const size_t _size, Type vec[]) {
+    this->size = _size;
+    pointer = new Type[_size];
+    memcpy(pointer, vec, sizeof(Type) * _size);
+    this->length = this->numberOfDigits();
+}
 
 inline list::list(const list& rvalue) {
     delete[] pointer;
@@ -126,6 +135,7 @@ inline const list& list::operator= (const list&& rvalue) {
     delete[] pointer;
     this->size = rvalue.size;
     this->pos = rvalue.pos;
+    this->length = rvalue.length;
     pointer = new Type[rvalue.size];
     memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
     return *this;
@@ -135,6 +145,7 @@ inline void list::operator=(const list& rvalue) {
     delete[] pointer;
     this->size = rvalue.size;
     this->pos = rvalue.pos;
+    this->length = rvalue.length;
     pointer = new Type[rvalue.size];
     memcpy(pointer, rvalue.pointer, sizeof(Type) * rvalue.size);
 }
@@ -164,7 +175,6 @@ inline void list::operator<<(int num)
         }
         else { std::cout << "Error se está tratando de quitar más elementos de los que tiene"; }
     }
-
 }
 
 inline void list::operator>>(int num)
@@ -180,7 +190,7 @@ inline void list::operator>>(int num)
         if ((this->size + num) > 0)
         {
             list aux(this->size + num);
-            memcpy(aux.pointer, this->pointer - num, sizeof(int) * (this->size + num));
+            memcpy(aux.pointer, this->pointer, sizeof(int) * (this->size + num));
             *this = aux;
         }
         else { std::cout << "Error se está tratando de quitar más elementos de los que tiene"; }
@@ -234,6 +244,15 @@ inline void list::resize(size_t _size, int fill) {
     length = _size == 0 ? 1 : this->numberOfDigits();
 }
 
+inline void list::resize(size_t _size, int fill, Type len) {
+    delete[] pointer;
+    size = _size;
+    pos = fill >= 0;
+    pointer = new Type[_size];
+    memset(pointer, fill, _size * sizeof(Type));
+    length = len;
+}
+
 // Funciones privadas
 
 inline size_t list::realSize() const {
@@ -260,15 +279,13 @@ inline void list::RemoveHeadZeros()
         *this >> (long long)(1 + this->realSize() - size);
         length = this->numberOfDigits();
     }
-    else
-    {
-        this->zero();
+    else {
+        length = this->numberOfDigits();
     }
 }
 
 inline void list::truncateToBase()
 {
-    //PROFINY_SCOPE
     for (size_t i = 0; i < this->size; ++i) // truncate each
     {
         if (this->pointer[i] >= BASE || this->pointer[i] <= -BASE)
